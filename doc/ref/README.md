@@ -1,0 +1,1 @@
+# Glossary for the `neuralprocesses` package
