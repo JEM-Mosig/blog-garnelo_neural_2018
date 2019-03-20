@@ -7,6 +7,7 @@ Various plotting routines inspired by the Wolfram Language.
 
 import matplotlib.pyplot as plt
 import numpy as np
+from copy import copy
 
 
 class Color:
@@ -83,7 +84,11 @@ def _option_value(value, index=None, default=None):
             return value
 
 
-def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, joined=None, mesh=None):
+# Default area of a point in a 'scatter plot'
+_default_point_size = 10
+
+
+def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, joined=None, mesh=None, filling=None):
     """
     list_plot([y_1, y_2, ...]) plots the points (1, y_1), (2, y_2), ...
     list_plot([[x_1, y_1], [x_2, y_2], ...]) plots the points (x_1, y_1), (x_2, y_2), ...
@@ -94,6 +99,7 @@ def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, join
     :param plot_style: Color of the points / lines # ToDo: Add support for other specs
     :param joined: Bool, or list of booleans that indicate if points should be joined by a line.
     :param mesh: If False, only the joining-lines are plotted (if present).
+    :param filling: Specifies filled areas. E.g. `filling=[[0,2]]` causes the area between curves 0 and 2 to be filled.
     """
     if len(axes_label) == 0:
         x_label = ""
@@ -135,7 +141,7 @@ def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, join
             color = Color.color_data()
 
         if _option_value(mesh, default=True):
-            plt.scatter(x, y, color=color.rgba)
+            plt.scatter(x, y, color=color.rgba, s=_default_point_size)
         if _option_value(joined, default=False):
             plt.plot(x, y, color=color.rgba)
 
@@ -155,12 +161,30 @@ def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, join
             color = Color.color_data()
 
         if _option_value(mesh, default=True):
-            plt.scatter(x, y, color=color.rgba)
+            plt.scatter(x, y, color=color.rgba, s=_default_point_size)
         if _option_value(joined, default=False):
             plt.plot(x, y, color=color.rgba)
 
     elif len(np.shape(data[0])) == 2:
         # `data` is a list of lists of [x. y]-tuples (multiple graphs)
+
+        # Draw fillings first, so they are in the background
+        if filling is not None:
+            if type(filling) is list:
+                for i, j in filling:
+                    # Pick color from plot_style
+                    color = _option_value(plot_style, i)
+                    if color is None:
+                        # Pick color from default color scheme
+                        color = Color.color_data(n=i)
+                    color = copy(color)  # Create a copy of that color, so we can modify it
+                    color.alpha = 0.5    # Make the color transparent (for filling)
+
+                    x, ya = list(np.transpose(data[i]))
+                    _, yb = list(np.transpose(data[j]))
+                    plt.fill_between(x, ya, yb, facecolor=color.rgba)
+
+        # Plot the data and determine the plot range
         x0, x1, y0, y1 = None, None, None, None
         for i in range(len(data)):
             x, y = list(np.transpose(data[i]))  # Use first set to determine bounds
@@ -183,7 +207,7 @@ def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, join
                 color = Color.color_data(n=i)
 
             if _option_value(mesh, i, default=True):
-                plt.scatter(x, y, color=color.rgba)
+                plt.scatter(x, y, color=color.rgba, s=_default_point_size)
 
             if _option_value(joined, i, default=False):
                 plt.plot(x, y, color=color.rgba)
