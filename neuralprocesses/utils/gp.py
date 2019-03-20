@@ -12,16 +12,39 @@ from neuralprocesses.utils.tf_utils import define_scope
 class GaussianProcess:
 
     # noinspection PyStatementEffect
-    def __init__(self, kernel, context_values=None, name="GaussianProcess"):
+    def __init__(self, queries, kernel_function, sort_output=False, name="GaussianProcess"):
+        """
+        Create a GaussianProcess graph.
+        :param queries: Tuple ((x_context, y_context), y_target), where each entry has shape [B, :].
+        Can also be (None, y_target), if there are no context points.
+        :param kernel_function: Lambda function to generate the kernel matrix.
+        :param sort_output: ToDo: Implement automatic sorting
+        :param name: Name of the variable scope.
+        """
 
         with tf.variable_scope(name):
 
-            b = tf.shape(kernel)[0]  # Batch size
-            n = tf.shape(kernel)[1]  # Number of coordinates
+            self._sort_output = sort_output     # ToDo: If True, all output is sorted by x-values in ascending order
+            self._x_target = queries[1]         # Target point coordinates
 
-            self._context_values = context_values
+            if queries[0] is None:
+                # No context points given
+                self._x_context = tf.constant([[]], dtype=tf.float32)  # Context point coordinates
+                self._y_context = tf.constant([[]], dtype=tf.float32)  # Context point values
+                self._x = self._x_target                               # All coordinates
+                self._no_context_points = True
+            else:
+                # There are context points
+                self._x_context = queries[0][0]                                 # Context point coordinates
+                self._y_context = queries[0][1]                                 # Context point values
+                self._x = tf.concat([self._x_context, self._x_target], axis=1)  # All coordinates
+                self._no_context_points = False
 
-            self._prior_kernel = kernel
+            with tf.variable_scope("shape_params"):
+                b = tf.shape(self._x)[0]     # Batch size
+                n = tf.shape(self._x)[1]     # Number of coordinates
+
+            self._prior_kernel = kernel_function(self._x)
             self._prior_mean = tf.zeros(shape=(b, n), dtype=tf.float32, name="default_prior_mean")
 
             self._mean, self._kernel = self.conditioned_mean_and_kernel
@@ -32,7 +55,7 @@ class GaussianProcess:
 
     @define_scope
     def conditioned_mean_and_kernel(self):
-        if self._context_values is None:
+        if self._no_context_points:
 
             # With no context points, the mean vector and kernel matrix remain unchanged
             return self._prior_mean, self._prior_kernel
@@ -40,7 +63,7 @@ class GaussianProcess:
         else:
 
             # If context points are given, use them to condition the mean vector and kernel matrix
-            y = self._context_values
+            y = self._y_context
             n = tf.shape(y)[1]
 
             inverse_kernel = tf.matrix_inverse(self._prior_kernel)
@@ -63,7 +86,7 @@ class GaussianProcess:
         """
 
         b = tf.shape(self._kernel)[0]  # Batch size
-        n = tf.shape(self._kernel)[1]  # Number of abscissas
+        n = tf.shape(self._kernel)[1]  # Number of coordinates
 
         # Compute the Cholesky decomposition of the kernel (using 64 bit precision for stability)
         cholesky = tf.cast(tf.cholesky(tf.cast(self._kernel, tf.float64)), tf.float32)
@@ -82,8 +105,8 @@ class GaussianProcess:
         y = y + self._mean
 
         # Prepend the context values
-        if self._context_values is not None:
-            y = tf.concat([self._context_values, y], axis=1)
+        if not self._no_context_points:
+            y = tf.concat([self._y_context, y], axis=1)
 
         return y
 
@@ -94,8 +117,8 @@ class GaussianProcess:
         :return: [len(kernel)]-tensor of variances
         """
         # Prepend the context values
-        if self._context_values is not None:
-            return tf.concat([self._context_values, self._mean], axis=1)
+        if self._y_context is not None:
+            return tf.concat([self._y_context, self._mean], axis=1)
         else:
             return self._mean
 
@@ -107,9 +130,11 @@ class GaussianProcess:
         """
         var = tf.matrix_diag_part(self._kernel)
 
+        c = tf.shape(self._x_context)[1]  # Number of context points
+
         # Prepend the context values
-        if self._context_values is not None:
-            return tf.pad(var, [[0, 0], [2, 0]], constant_values=0)
+        if self._y_context is not None:
+            return tf.pad(var, [[0, 0], [c, 0]], constant_values=0)
         else:
             return var
 
@@ -120,6 +145,14 @@ class GaussianProcess:
         :return: [len(kernel)]-tensor of standard deviations
         """
         return tf.sqrt(self.variance)
+
+    @define_scope
+    def coordinates(self):
+        return self._x
+
+    @define_scope
+    def kernel_matrix(self):
+        return self._kernel
 
 
 ########################################################################################################################
