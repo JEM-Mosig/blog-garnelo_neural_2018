@@ -9,6 +9,22 @@ implementation of TensorFlow models.
 import functools
 import tensorflow as tf
 
+
+def tf_sort_by_col(x, col, descending=False):
+    """
+    Sorts the tensor `x` by the values in column `col`.
+    Code inspired by https://stackoverflow.com/a/41708102/6760298.
+    :param x: A (non-ragged) tensor.
+    :param col: Index of the column after which rows should be sorted.
+    :param descending: If True, values will be in descending order.
+    :return: Sorted tensor.
+    """
+    if descending:
+        return tf.gather(x, tf.nn.top_k(x[:, col], k=tf.shape(x)[0]).indices)
+    else:
+        return tf.gather(x, tf.nn.top_k(-x[:, col], k=tf.shape(x)[0]).indices)
+
+
 """
 
 The following code is inspired by 
