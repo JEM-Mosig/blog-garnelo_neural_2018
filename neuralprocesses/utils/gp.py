@@ -104,10 +104,6 @@ class GaussianProcess:
         # Add the mean-vector to the y-values
         y = y + self._mean
 
-        # Prepend the context values
-        if not self._no_context_points:
-            y = tf.concat([self._y_context, y], axis=1)
-
         return y
 
     @define_scope
@@ -116,11 +112,7 @@ class GaussianProcess:
         Returns the mean for each coordinate
         :return: [len(kernel)]-tensor of variances
         """
-        # Prepend the context values
-        if self._y_context is not None:
-            return tf.concat([self._y_context, self._mean], axis=1)
-        else:
-            return self._mean
+        return self._mean
 
     @define_scope
     def variance(self):
@@ -128,15 +120,7 @@ class GaussianProcess:
         Returns the variance for each coordinate
         :return: [len(kernel)]-tensor of variances
         """
-        var = tf.matrix_diag_part(self._kernel)
-
-        c = tf.shape(self._x_context)[1]  # Number of context points
-
-        # Prepend the context values
-        if self._y_context is not None:
-            return tf.pad(var, [[0, 0], [c, 0]], constant_values=0)
-        else:
-            return var
+        return tf.matrix_diag_part(self._kernel)
 
     @define_scope
     def standard_deviation(self):
@@ -148,7 +132,7 @@ class GaussianProcess:
 
     @define_scope
     def coordinates(self):
-        return self._x
+        return self._x_target
 
     @define_scope
     def kernel_matrix(self):
