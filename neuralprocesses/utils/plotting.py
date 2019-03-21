@@ -60,7 +60,7 @@ class Color:
         }.get(name)
 
 
-def _option_value(value, index=None, default=None):
+def _option_value(value, index=None, tag=None, default=None):
     """
     Helper function for options that can be single values or lists of values.
     :param value: Single value or list of values.
@@ -75,17 +75,27 @@ def _option_value(value, index=None, default=None):
             result = value[index % len(value)]
             if result is None:
                 return default
+            elif type(result) is dict:
+                return result.get(tag, default)
             else:
-                return result
+                if type(result) is type(default):
+                    return result
+                else:
+                    return default
     else:
         if value is None:
             return default
+        elif type(value) is dict:
+            return value.get(tag, default)
         else:
-            return value
+            if type(value) is type(default):
+                return value
+            else:
+                return default
 
 
 # Default area of a point in a 'scatter plot'
-_default_point_size = 10
+_default_point_size = 20
 
 
 def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, joined=None, mesh=None, filling=None):
@@ -96,7 +106,7 @@ def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, join
     :param step: If only ordinates are given, then 'step' controls the range of abscissas (optional).
     :param plot_range: Range of coordinates that is to be displayed (optional).
     :param axes_label: Labels of the two axes (optional).
-    :param plot_style: Color of the points / lines # ToDo: Add support for other specs
+    :param plot_style: Specify the style (color, point size, etc.) of the points / lines.
     :param joined: Bool, or list of booleans that indicate if points should be joined by a line.
     :param mesh: If False, only the joining-lines are plotted (if present).
     :param filling: Specifies filled areas. E.g. `filling=[[0,2]]` causes the area between curves 0 and 2 to be filled.
@@ -134,14 +144,13 @@ def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, join
         x = np.arange(x0, x1 + 1, dx)
         y = data
 
-        # Pick color from plot_style
-        color = _option_value(plot_style)
-        if color is None:
-            # Pick first color from default color scheme
-            color = Color.color_data()
+        # Pick settings from plot_style
+        color = _option_value(plot_style, tag="Color", default=Color.color_data())
+        marker = _option_value(plot_style, tag="Marker", default=".")
+        point_size = _option_value(plot_style, tag="PointSize", default=_default_point_size)
 
         if _option_value(mesh, default=True):
-            plt.scatter(x, y, color=color.rgba, s=_default_point_size)
+            plt.scatter(x, y, color=color.rgba, s=point_size, marker=marker)
         if _option_value(joined, default=False):
             plt.plot(x, y, color=color.rgba)
 
@@ -154,14 +163,13 @@ def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, join
         y0 = np.min(y)
         y1 = np.max(y)
 
-        # Pick color from plot_style
-        color = _option_value(plot_style)
-        if color is None:
-            # Pick first color from default color scheme
-            color = Color.color_data()
+        # Pick settings from plot_style
+        color = _option_value(plot_style, tag="Color", default=Color.color_data())
+        marker = _option_value(plot_style, tag="Marker", default=".")
+        point_size = _option_value(plot_style, tag="PointSize", default=_default_point_size)
 
         if _option_value(mesh, default=True):
-            plt.scatter(x, y, color=color.rgba, s=_default_point_size)
+            plt.scatter(x, y, color=color.rgba, s=point_size, marker=marker)
         if _option_value(joined, default=False):
             plt.plot(x, y, color=color.rgba)
 
@@ -173,10 +181,7 @@ def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, join
             if type(filling) is list:
                 for i, j in filling:
                     # Pick color from plot_style
-                    color = _option_value(plot_style, i)
-                    if color is None:
-                        # Pick color from default color scheme
-                        color = Color.color_data(n=i)
+                    color = _option_value(plot_style, i, tag="Color", default=Color.color_data(n=i))
                     color = copy(color)  # Create a copy of that color, so we can modify it
                     color.alpha = 0.5    # Make the color transparent (for filling)
 
@@ -200,14 +205,13 @@ def list_plot(data, step=(), plot_range=(), axes_label=(), plot_style=None, join
                 y0 = min([y0, np.min(y)])
                 y1 = max([y1, np.max(y)])
 
-            # Pick color from plot_style
-            color = _option_value(plot_style, i)
-            if color is None:
-                # Pick color from default color scheme
-                color = Color.color_data(n=i)
+            # Pick settings from plot_style
+            color = _option_value(plot_style, i, tag="Color", default=Color.color_data(n=i))
+            marker = _option_value(plot_style, i, tag="Marker", default=".")
+            point_size = _option_value(plot_style, i, tag="PointSize", default=_default_point_size)
 
             if _option_value(mesh, i, default=True):
-                plt.scatter(x, y, color=color.rgba, s=_default_point_size)
+                plt.scatter(x, y, color=color.rgba, s=point_size, marker=marker)
 
             if _option_value(joined, i, default=False):
                 plt.plot(x, y, color=color.rgba)
