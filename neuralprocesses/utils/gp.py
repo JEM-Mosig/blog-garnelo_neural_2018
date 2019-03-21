@@ -91,7 +91,7 @@ class GaussianProcess:
         # Compute the Cholesky decomposition of the kernel (using 64 bit precision for stability)
         cholesky = tf.cast(tf.cholesky(tf.cast(self._kernel, tf.float64)), tf.float32)
 
-        # Get n samples from a (1D) normal distribution
+        # For each batch index, get n samples from a (1D) normal distribution
         samples = tf.random_normal((b, n))
 
         # Taking the product results in a sample from a multivariate normal distribution with the given kernel

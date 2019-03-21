@@ -55,7 +55,12 @@ class DataProvider:
             self._max_num_target_points = max_num_target_points
             self._target_includes_context = target_includes_context
 
-            self.plotting_mode = tf.placeholder(dtype=tf.bool, name="plotting_mode")
+            if tf.executing_eagerly():
+                # Always output enough data for plotting when in eager-execution mode
+                self.plotting_mode = True
+            else:
+                # When in normal mode, use a placeholder (not allowed in eager execution mode)
+                self.plotting_mode = tf.placeholder(dtype=tf.bool, name="plotting_mode")
 
             self.values
             self.num_points
