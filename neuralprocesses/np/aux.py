@@ -136,20 +136,36 @@ class DataProvider:
         Assembles a RegressionInput object from a sample of functions.
         :return: RegressionInput object
         """
-        _, num_context_points, num_target_points = self.num_points
 
         x = self.coordinates
         y = self.values
 
-        # Split the coordinates and values into context and target sets
-        x_context, x_target = tf.split(x, [num_context_points, num_target_points], axis=1)
-        y_context, y_target = tf.split(y, [num_context_points, num_target_points], axis=1)
+        def plot_data():  # This branch is taken if we are in plotting mode
 
-        if self._target_includes_context:
-            queries = ((x_context, y_context), x)
-            targets = y
-        else:
-            queries = ((x_context, y_context), x_target)
-            targets = y_target
+            # Context points are the same as target points, but randomly shuffled
+            r = tf.random_shuffle(tf.range(tf.shape(x)[1]))
+            x_context = tf.gather(x, r, axis=1)
+            y_context = tf.gather(y, r, axis=1)
+
+            return ((x_context, y_context), x), y
+
+        def training_data():  # This branch is taken if we are not plotting
+
+            _, num_context_points, num_target_points = self.num_points
+
+            # Split the coordinates and values into context and target sets
+            x_context, x_target = tf.split(x, [num_context_points, num_target_points], axis=1)
+            y_context, y_target = tf.split(y, [num_context_points, num_target_points], axis=1)
+
+            if self._target_includes_context:
+                q = ((x_context, y_context), x)
+                t = y
+            else:
+                q = ((x_context, y_context), x_target)
+                t = y_target
+
+            return q, t
+
+        queries, targets = tf.cond(self.plotting_mode, plot_data, training_data)
 
         return RegressionInput(queries=queries, targets=targets)
