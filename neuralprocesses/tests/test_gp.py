@@ -64,12 +64,32 @@ class GaussianProcessTEST(unittest.TestCase):
         Test if GaussianProcess.sample returns an array of the correct shape.
         """
         coordinates = tf.constant([[1, 2, 3, 4], [3, 1, 4, 1], [-12, -11, -10, -8]], dtype=tf.float32)
-        gp = GaussianProcess((None, coordinates), lambda x: squared_exponential_kernel(x))
+        gp = GaussianProcess((None, coordinates), squared_exponential_kernel)
 
         with tf.Session() as session:
             result = session.run(tf.shape(gp.sample))
 
         self.assertTrue(np.array_equal(result, [3, 4]))
+
+    def test_conditioning(self):
+        """
+        Ensure that a random sample from a conditioned GP matches the provided context points.
+        """
+        target = [0, -3.2, 5.1]
+
+        x = tf.constant([[1, 2, 3, 4, 5, 6, 7, 8, 9]], dtype=tf.float32)
+        x_context = tf.constant([[2, 3, 9]], dtype=tf.float32)
+        y_context = tf.constant([target], dtype=tf.float32)
+
+        gp = GaussianProcess(((x_context, y_context), x), squared_exponential_kernel)
+
+        with tf.Session() as session:
+            s = session.run(gp.sample)
+
+        # ToDo: Is numerical precision really that bad that we need to set atol=0.1?
+        test = np.allclose([s[0, 1], s[0, 2], s[0, 8]], target, atol=0.1)
+
+        self.assertTrue(test)
 
 
 if __name__ == '__main__':
