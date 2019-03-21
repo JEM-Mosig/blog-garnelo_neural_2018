@@ -63,10 +63,8 @@ class GaussianProcessTEST(unittest.TestCase):
         """
         Test if GaussianProcess.sample returns an array of the correct shape.
         """
-        x = tf.constant([[1, 2, 3, 4], [3, 1, 4, 1], [-12, -11, -10, -8]], dtype=tf.float32)
-        kernel = squared_exponential_kernel(x)
-
-        gp = GaussianProcess(kernel)
+        coordinates = tf.constant([[1, 2, 3, 4], [3, 1, 4, 1], [-12, -11, -10, -8]], dtype=tf.float32)
+        gp = GaussianProcess((None, coordinates), lambda x: squared_exponential_kernel(x))
 
         with tf.Session() as session:
             result = session.run(tf.shape(gp.sample))
