@@ -11,20 +11,30 @@ from neuralprocesses.utils.tf_utils import define_scope
 
 class GaussianProcess:
 
-    # noinspection PyStatementEffect
-    def __init__(self, queries, kernel_function, sort_output=False, name="GaussianProcess"):
+    def __init__(self, kernel_function, sort_output=False, reuse=None, name="GaussianProcess"):
         """
         Create a GaussianProcess graph.
-        :param queries: Tuple ((x_context, y_context), y_target), where each entry has shape [B, :].
-        Can also be (None, y_target), if there are no context points.
         :param kernel_function: Lambda function to generate the kernel matrix.
         :param sort_output: ToDo: Implement automatic sorting
         :param name: Name of the variable scope.
         """
 
-        with tf.variable_scope(name):
+        self._name = name
+        self._reuse = reuse
+        self._kernel_function = kernel_function
+        self._sort_output = sort_output     # ToDo: If True, all output is sorted by x-values in ascending order
 
-            self._sort_output = sort_output     # ToDo: If True, all output is sorted by x-values in ascending order
+    # noinspection PyStatementEffect
+    def __call__(self, queries, *args, **kwargs):
+        """
+        Generate the computational graph for this Gaussian process.
+        :param queries: Tuple ((x_context, y_context), y_target), where each entry has shape [B, :].
+        Can also be (None, y_target), if there are no context points.
+        :return: coordinates, mean, variance, standard_deviation
+        """
+
+        with tf.variable_scope(self._name, reuse=self._reuse):
+
             self._x_target = queries[1]         # Target point coordinates
 
             if queries[0] is None:
@@ -44,14 +54,16 @@ class GaussianProcess:
                 b = tf.shape(self._x)[0]     # Batch size
                 n = tf.shape(self._x)[1]     # Number of coordinates
 
-            self._prior_kernel = kernel_function(self._x)
+            self._prior_kernel = self._kernel_function(self._x)
             self._prior_mean = tf.zeros(shape=(b, n), dtype=tf.float32, name="default_prior_mean")
 
             self._mean, self._kernel = self.conditioned_mean_and_kernel
 
+            # Generate parts of the graph that are not returned by `.__call__`
             self.sample
-            self.variance
-            self.standard_deviation
+
+            # Return some of the outputs
+            return self.coordinates, self.mean, self.variance, self.standard_deviation
 
     @define_scope
     def conditioned_mean_and_kernel(self):
@@ -144,7 +156,7 @@ class GaussianProcess:
 ########################################################################################################################
 
 
-def squared_exponential_kernel(x, length_scale=1.0, coupling_scale=1.0, noise_scale=0.01,
+def squared_exponential_kernel(x, length_scale=1.0, signal_variance=1.0, noise_variance=0.01,
                                name="squared_exponential_kernel"):
 
     with tf.variable_scope(name):
@@ -153,9 +165,9 @@ def squared_exponential_kernel(x, length_scale=1.0, coupling_scale=1.0, noise_sc
         # Evaluate squared exponential function on all pairs of coordinates
         diff_squared = tf.square(tf.expand_dims(x, 1) - tf.expand_dims(x, 2))
         exponent = -0.5 * diff_squared / tf.square(length_scale)
-        kernel = tf.square(coupling_scale) * tf.exp(exponent)
+        kernel = tf.square(signal_variance) * tf.exp(exponent)
 
         # Add noise to diagonal (improves numerical stability)
-        kernel += tf.square(noise_scale) * tf.eye(n)
+        kernel += tf.square(noise_variance) * tf.eye(n)
 
         return kernel
