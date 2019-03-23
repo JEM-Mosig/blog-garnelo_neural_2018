@@ -18,7 +18,6 @@ class DataProvider:
 
     # noinspection PyStatementEffect
     def __init__(self,
-                 distribution,
                  batch_size=5,
                  domain=(-1, 1),
                  min_num_context_points=3,
@@ -26,13 +25,14 @@ class DataProvider:
                  min_num_target_points=3,
                  max_num_target_points=10,
                  target_includes_context=True,
-                 name="DataGenerator"
+                 plotting_mode=False,
+                 reuse=None,
+                 name="DataProvider"
                  ):
         """
         Constructor of a DataProvider. Samples functions from the given distribution and creates a RegressionInput
         object to be used with NPs. An example distribution is `(lambda x: GaussianProcess((None, x), kernel))`, where
         `kernel` is some kernel function.
-        :param distribution: The distribution function (lambda).
         :param batch_size: Number of samples to taken from the distribution.
         :param domain: Interval (x_min, x_max) over which to sample coordinates.
         :param min_num_context_points: Minimum number of context points.
@@ -43,37 +43,41 @@ class DataProvider:
         :param name: Variable scope.
         """
 
-        with tf.variable_scope(name):
+        self._name = name
+        self._reuse = reuse
+        self._batch_size = batch_size
+        self._min_x = domain[0]
+        self._max_x = domain[1]
+        self._min_num_context_points = min_num_context_points
+        self._max_num_context_points = max_num_context_points
+        self._min_num_target_points = min_num_target_points
+        self._max_num_target_points = max_num_target_points
+        self._target_includes_context = target_includes_context
 
-            self._distribution = distribution
-            self._batch_size = batch_size
-            self._min_x = domain[0]
-            self._max_x = domain[1]
-            self._min_num_context_points = min_num_context_points
-            self._max_num_context_points = max_num_context_points
-            self._min_num_target_points = min_num_target_points
-            self._max_num_target_points = max_num_target_points
-            self._target_includes_context = target_includes_context
+        self.plotting_mode = plotting_mode
 
-            if tf.executing_eagerly():
-                # Always output enough data for plotting when in eager-execution mode
-                self.plotting_mode = True
-            else:
-                # When in normal mode, use a placeholder (not allowed in eager execution mode)
-                self.plotting_mode = tf.placeholder(dtype=tf.bool, name="plotting_mode")
+    # noinspection PyStatementEffect
+    def __call__(self, distribution, *args, **kwargs):
+        """
+        Generate the computational graph.
+        :param distribution: The distribution function (lambda).
+        :return:
+        """
 
-            self.values
+        with tf.variable_scope(self._name, reuse=self._reuse):
+
+            # Create the computational graph that generates the distribution and feed it with self.coordinates
+            distribution((None, self.coordinates))
+
+            # Values are samples from that distribution
+            self.values = distribution.sample
+
+            # Generate parts of the graph that are not returned by `.__call__`
             self.num_points
             self.coordinates
-            self.data
 
-    @define_scope
-    def values(self):
-        """
-        Gives the values of a function that was sampled from the given distribution.
-        :return: [batch_size, num_points]-tensor of function values
-        """
-        return self._distribution(self.coordinates).sample
+            # Return the data output
+            return self.data
 
     @define_scope
     def num_points(self):
@@ -128,7 +132,7 @@ class DataProvider:
                 dtype=tf.float32
             )
 
-        return tf.cond(self.plotting_mode, plot_coordinates, training_coordinates)
+        return tf.cond(tf.constant(self.plotting_mode), plot_coordinates, training_coordinates)
 
     @define_scope
     def data(self):
@@ -166,6 +170,6 @@ class DataProvider:
 
             return q, t
 
-        queries, targets = tf.cond(self.plotting_mode, plot_data, training_data)
+        queries, targets = tf.cond(tf.constant(self.plotting_mode), plot_data, training_data)
 
         return RegressionInput(queries=queries, targets=targets)
