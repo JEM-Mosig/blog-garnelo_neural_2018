@@ -11,7 +11,7 @@ from neuralprocesses.utils.tf_utils import define_scope
 import collections
 
 
-RegressionInput = collections.namedtuple("RegressionInput", ("queries", "targets"))
+RegressionInput = collections.namedtuple("RegressionInput", ("queries", "targets", "num_context"))
 
 
 class DataProvider:
@@ -151,7 +151,7 @@ class DataProvider:
             x_context = tf.gather(x, r, axis=1)
             y_context = tf.gather(y, r, axis=1)
 
-            return ((x_context, y_context), x), y
+            return ((x_context, y_context), x), y, 100  # ToDo: Make 100 a named constant
 
         def training_data():  # This branch is taken if we are not plotting
 
@@ -168,8 +168,8 @@ class DataProvider:
                 q = ((x_context, y_context), x_target)
                 t = y_target
 
-            return q, t
+            return q, t, num_context_points
 
-        queries, targets = tf.cond(tf.constant(self.plotting_mode), plot_data, training_data)
+        queries, targets, num_context = tf.cond(tf.constant(self.plotting_mode), plot_data, training_data)
 
-        return RegressionInput(queries=queries, targets=targets)
+        return RegressionInput(queries=queries, targets=targets, num_context=num_context)
