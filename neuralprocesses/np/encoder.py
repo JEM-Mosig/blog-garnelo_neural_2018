@@ -21,6 +21,7 @@ class DeterministicMLPEncoder:
         self._name = name
         self._reuse = reuse
         self.regularizer = None
+        self._representation_size = neurons_per_layer[-1]
 
         self._mlp = MultiLayerPerceptron(
             neurons_per_layer,
@@ -45,7 +46,7 @@ class DeterministicMLPEncoder:
 
             batch_size, _ = x_context.shape.as_list()
 
-            # Concatenate x and y to a single [batch_size, num_context, 2] tensor
+            # Stack x and y to a single [batch_size, num_context, 2] tensor
             mlp_input = tf.stack([x_context, y_context], axis=-1)
 
             # Combine batch and context index dimensions
@@ -55,7 +56,7 @@ class DeterministicMLPEncoder:
             # Send this through an MLP
             representation = self._mlp(mlp_input)
 
-            # Reshape (-1 corresponds to the output size of the MLP)
-            representation = tf.reshape(representation, (batch_size, num_context, -1))
+            # Reshape to one representation for each batch and each context point
+            representation = tf.reshape(representation, (batch_size, num_context, self._representation_size))
 
             return representation

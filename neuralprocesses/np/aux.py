@@ -11,7 +11,7 @@ from neuralprocesses.utils.tf_utils import define_scope
 import collections
 
 
-RegressionInput = collections.namedtuple("RegressionInput", ("queries", "targets", "num_context"))
+RegressionInput = collections.namedtuple("RegressionInput", ("queries", "targets", "num_context", "num_target"))
 
 
 class DataProvider:
@@ -57,7 +57,7 @@ class DataProvider:
         self.plotting_mode = plotting_mode
 
     # noinspection PyStatementEffect
-    def __call__(self, distribution, *args, **kwargs):
+    def __call__(self, distribution):
         """
         Generate the computational graph.
         :param distribution: The distribution function (lambda).
@@ -151,7 +151,7 @@ class DataProvider:
             x_context = tf.gather(x, r, axis=1)
             y_context = tf.gather(y, r, axis=1)
 
-            return ((x_context, y_context), x), y, 100  # ToDo: Make 100 a named constant
+            return ((x_context, y_context), x), y, 100, 100  # ToDo: Make 100 a named constant
 
         def training_data():  # This branch is taken if we are not plotting
 
@@ -164,12 +164,12 @@ class DataProvider:
             if self._target_includes_context:
                 q = ((x_context, y_context), x)
                 t = y
+                return q, t, num_context_points, num_context_points + num_target_points
             else:
                 q = ((x_context, y_context), x_target)
                 t = y_target
+                return q, t, num_context_points, num_target_points
 
-            return q, t, num_context_points
+        queries, targets, num_context, num_target = tf.cond(tf.constant(self.plotting_mode), plot_data, training_data)
 
-        queries, targets, num_context = tf.cond(tf.constant(self.plotting_mode), plot_data, training_data)
-
-        return RegressionInput(queries=queries, targets=targets, num_context=num_context)
+        return RegressionInput(queries=queries, targets=targets, num_context=num_context, num_target=num_target)
