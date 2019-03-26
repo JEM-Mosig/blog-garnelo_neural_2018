@@ -13,11 +13,14 @@ import collections
 
 RegressionInput = collections.namedtuple("RegressionInput", ("queries", "targets", "num_context", "num_target"))
 
+_default_plot_settings = {"num_coordinates": 100, "num_context": -1}
+
 
 class DataProvider:
 
     # noinspection PyStatementEffect
     def __init__(self,
+                 process,
                  batch_size=5,
                  domain=(-1, 1),
                  min_num_context_points=3,
@@ -25,7 +28,7 @@ class DataProvider:
                  min_num_target_points=3,
                  max_num_target_points=10,
                  target_includes_context=True,
-                 plotting_mode=False,
+                 plot_settings=_default_plot_settings,
                  reuse=None,
                  name="DataProvider"
                  ):
@@ -45,6 +48,7 @@ class DataProvider:
 
         self._name = name
         self._reuse = reuse
+        self._process = process
         self._batch_size = batch_size
         self._min_x = domain[0]
         self._max_x = domain[1]
@@ -53,24 +57,29 @@ class DataProvider:
         self._min_num_target_points = min_num_target_points
         self._max_num_target_points = max_num_target_points
         self._target_includes_context = target_includes_context
-
-        self.plotting_mode = plotting_mode
+        self.plotting_mode = None
+        self.num_plot_points = plot_settings.get("num_coordinates", _default_plot_settings["num_coordinates"])
+        self.num_plot_context_points = plot_settings.get("num_context", _default_plot_settings["num_context"])
 
     # noinspection PyStatementEffect
-    def __call__(self, distribution):
+    def __call__(self, plotting_mode=None):
         """
         Generate the computational graph.
-        :param distribution: The distribution function (lambda).
-        :return:
         """
 
         with tf.variable_scope(self._name, reuse=self._reuse):
 
-            # Create the computational graph that generates the distribution and feed it with self.coordinates
-            distribution((None, self.coordinates))
+            # By default, plotting_mode is False
+            if plotting_mode is None:
+                self.plotting_mode = tf.constant(False)
+            else:
+                self.plotting_mode = plotting_mode
+
+            # Create the computational graph that generates the stochastic process and feed it with self.coordinates
+            self._process((None, self.coordinates))
 
             # Values are samples from that distribution
-            self.values = distribution.sample
+            self.values = self._process.sample
 
             # Generate parts of the graph that are not returned by `.__call__`
             self.num_points
@@ -113,7 +122,7 @@ class DataProvider:
 
         def plot_coordinates():
             # Use many equidistant coordinates for plotting
-            delta = (self._max_x - self._min_x) / 100
+            delta = (self._max_x - self._min_x) / self.num_plot_points
             x = tf.range(self._min_x, self._max_x, delta, dtype=tf.float32)
             multiply = tf.constant([self._batch_size])
             x = tf.reshape(tf.tile(x, multiply), [multiply[0], tf.shape(x)[0]])
@@ -132,7 +141,7 @@ class DataProvider:
                 dtype=tf.float32
             )
 
-        return tf.cond(tf.constant(self.plotting_mode), plot_coordinates, training_coordinates)
+        return tf.cond(self.plotting_mode, plot_coordinates, training_coordinates)
 
     @define_scope
     def data(self):
@@ -144,14 +153,19 @@ class DataProvider:
         x = self.coordinates
         y = self.values
 
+        if self.num_plot_context_points == -1:
+            num_plot_context_points = self.num_plot_points
+        else:
+            num_plot_context_points = self.num_plot_context_points
+
         def plot_data():  # This branch is taken if we are in plotting mode
 
             # Context points are the same as target points, but randomly shuffled
             r = tf.random_shuffle(tf.range(tf.shape(x)[1]))
-            x_context = tf.gather(x, r, axis=1)
-            y_context = tf.gather(y, r, axis=1)
+            x_context = tf.gather(x, r, axis=1)[:, :num_plot_context_points]
+            y_context = tf.gather(y, r, axis=1)[:, :num_plot_context_points]
 
-            return ((x_context, y_context), x), y, 100, 100  # ToDo: Make 100 a named constant
+            return ((x_context, y_context), x), y, num_plot_context_points, self.num_plot_points
 
         def training_data():  # This branch is taken if we are not plotting
 
@@ -170,6 +184,6 @@ class DataProvider:
                 t = y_target
                 return q, t, num_context_points, num_target_points
 
-        queries, targets, num_context, num_target = tf.cond(tf.constant(self.plotting_mode), plot_data, training_data)
+        queries, targets, num_context, num_target = tf.cond(self.plotting_mode, plot_data, training_data)
 
         return RegressionInput(queries=queries, targets=targets, num_context=num_context, num_target=num_target)

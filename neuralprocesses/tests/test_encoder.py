@@ -39,8 +39,8 @@ class DeterministicMLPEncoderTEST(unittest.TestCase):
 
         distribution = GaussianProcess(squared_exponential_kernel)
 
-        data_provider = DataProvider(batch_size=3)
-        data = data_provider(distribution)
+        data_provider = DataProvider(distribution, batch_size=3)
+        data = data_provider(plotting_mode=tf.constant(False))
 
         x_context, y_context = data.queries[0]
         num_context = data.num_context

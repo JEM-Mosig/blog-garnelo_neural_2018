@@ -29,15 +29,11 @@ class ConditionalNeuralProcess:
         self._aggregator = self._choose_aggregator(aggregator)
         self._decoder = self._choose_decoder(decoder)
 
-        # To be connected upon graph construction in __call__
-        self._representation = None
-        self._loss = None
-
     @staticmethod
     def _choose_encoder(encoder_spec):
         if type(encoder_spec) is str:
             if encoder_spec == "MLP":
-                return DeterministicMLPEncoder([64, 64, 64, 64])
+                return DeterministicMLPEncoder([128, 128, 128, 128])
             else:
                 raise ValueError("Unknown encoder specification")
         else:
@@ -57,7 +53,7 @@ class ConditionalNeuralProcess:
     def _choose_decoder(decoder_spec):
         if type(decoder_spec) is str:
             if decoder_spec == "MLP":
-                return MLPDecoder([64, 64, 64, 64])
+                return MLPDecoder([128, 128, 128, 128])
             else:
                 raise ValueError("Unknown encoder specification")
         else:
@@ -84,22 +80,4 @@ class ConditionalNeuralProcess:
                 log_prob = dist.log_prob(y_target)
                 loss = -tf.reduce_mean(log_prob)
 
-            # Link additional outputs
-            self._representation = representation
-            self._loss = loss
-
-            return mean, variance
-
-    @property
-    def representation(self):
-        if self._representation is None:
-            raise SyntaxError("Computational graph has not yet been constructed. Use __call__ first.")
-        else:
-            return self._representation
-
-    @property
-    def loss(self):
-        if self._loss is None:
-            raise SyntaxError("Computational graph has not yet been constructed. Use __call__ first.")
-        else:
-            return self._loss
+            return mean, variance, loss

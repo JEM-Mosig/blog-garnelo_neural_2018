@@ -24,8 +24,8 @@ class DataProviderTEST(unittest.TestCase):
         distribution = ConstantDistribution()
 
         # Create the DataProvider and its graph
-        data_provider = DataProvider(batch_size=1, domain=(5, 6), plotting_mode=True)
-        data = data_provider(distribution)
+        data_provider = DataProvider(distribution, batch_size=1, domain=(5, 6))
+        data = data_provider(plotting_mode=tf.constant(True))
 
         # Evaluate the generated context and target points
         with tf.Session() as session:
