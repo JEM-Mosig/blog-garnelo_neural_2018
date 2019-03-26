@@ -33,7 +33,7 @@ class ConditionalNeuralProcess:
     def _choose_encoder(encoder_spec):
         if type(encoder_spec) is str:
             if encoder_spec == "MLP":
-                return DeterministicMLPEncoder([128, 128, 128, 128])
+                return DeterministicMLPEncoder([64, 64, 64, 64])
             else:
                 raise ValueError("Unknown encoder specification")
         else:
@@ -53,7 +53,7 @@ class ConditionalNeuralProcess:
     def _choose_decoder(decoder_spec):
         if type(decoder_spec) is str:
             if decoder_spec == "MLP":
-                return MLPDecoder([128, 128, 128, 128])
+                return MLPDecoder([64, 64, 64, 64])
             else:
                 raise ValueError("Unknown encoder specification")
         else:

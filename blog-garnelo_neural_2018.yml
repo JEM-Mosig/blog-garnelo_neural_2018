@@ -64,6 +64,7 @@ dependencies:
   - termcolor=1.1.0=py_2
   - tk=8.6.9=h84994c4_1000
   - tornado=6.0.1=py36h14c3975_0
+  - tqdm=4.31.1=py_0
   - werkzeug=0.14.1=py_0
   - wheel=0.33.1=py36_0
   - xorg-libxau=1.0.9=h14c3975_0
