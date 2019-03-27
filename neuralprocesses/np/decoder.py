@@ -73,6 +73,6 @@ class MLPDecoder:
             mean = tf.reshape(mean, (batch_size, num_target))
 
             # Remove final `1` from shape and apply `square` to ensure that value is non-negative
-            variance = tf.square(tf.reshape(variance, (batch_size, num_target)))
+            variance = 0.05 + tf.square(tf.reshape(variance, (batch_size, num_target)))  # ToDo: Make 0.05 adjustable
 
             return mean, variance

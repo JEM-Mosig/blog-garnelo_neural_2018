@@ -25,7 +25,7 @@ class GaussianProcess:
         self._sort_output = sort_output     # ToDo: If True, all output is sorted by x-values in ascending order
 
     # noinspection PyStatementEffect
-    def __call__(self, queries, *args, **kwargs):
+    def __call__(self, queries):
         """
         Generate the computational graph for this Gaussian process.
         :param queries: Tuple ((x_context, y_context), y_target), where each entry has shape [B, :].
