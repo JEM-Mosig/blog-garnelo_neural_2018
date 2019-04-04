@@ -3,12 +3,12 @@ import unittest
 import tensorflow as tf
 import numpy as np
 
-from neuralprocesses.np.decoder import MLPDecoder
+from neuralprocesses.np.decoder import DeterministicMLPDecoder
 from neuralprocesses.np.encoder import DeterministicMLPEncoder
 from neuralprocesses.np.aggregator import MeanAggregator
 
 
-class MLPDecoderTEST(unittest.TestCase):
+class DeterministicMLPDecoderTEST(unittest.TestCase):
     def test_shapes(self):
         tf.reset_default_graph()
         tf.set_random_seed(2019)
@@ -21,7 +21,7 @@ class MLPDecoderTEST(unittest.TestCase):
         representation = tf.constant([[.3, 2.8, 5.5], [.3, 2.8, 5.5]], dtype=tf.float32)
 
         # Construct the decoder and the mean and variance tensors as its output
-        dec = MLPDecoder([1, 2, 12, 5])  # Layer sizes are arbitrary
+        dec = DeterministicMLPDecoder([1, 2, 12, 5])  # Layer sizes are arbitrary
         mean, variance = dec(representation, x_target, num_target)
 
         # Evaluate the graph
@@ -51,7 +51,7 @@ class MLPDecoderTEST(unittest.TestCase):
         # Define the encoder and aggregator
         enc = DeterministicMLPEncoder([1, 2, 12, 5])    # Layer sizes are arbitrary, except for the last
         agg = MeanAggregator()
-        dec = MLPDecoder([1, 2, 12, 5])                 # Layer sizes are arbitrary
+        dec = DeterministicMLPDecoder([1, 2, 12, 5])    # Layer sizes are arbitrary
 
         # Construct the graph with the encoder, aggregator, and decoder
         rep_list = enc(x_context, y_context, num_context)

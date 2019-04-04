@@ -20,7 +20,7 @@ class DeterministicMLPEncoderTEST(unittest.TestCase):
 
         # Construct the encoder and the representation list as its output
         enc = DeterministicMLPEncoder([1, 2, 12, 5])  # Layer sizes are arbitrary, except for the last
-        rep = enc(x_context, y_context, 4)
+        rep = enc(x_context, y_context, num_context=4)
 
         # Evaluate the graph
         init = tf.global_variables_initializer()
@@ -56,7 +56,7 @@ class DeterministicMLPEncoderTEST(unittest.TestCase):
             nc, rep_shape = session.run([num_context, tf.shape(rep)])
 
         # batch_size          = 3
-        # num_context         = num_context
+        # num_context         = nc
         # encoder output size = 5
         self.assertTrue(np.array_equal(rep_shape, [3, nc, 5]))
 

@@ -8,11 +8,11 @@ import tensorflow as tf
 from neuralprocesses.np.mlp import MultiLayerPerceptron
 
 
-class MLPDecoder:
+class DeterministicMLPDecoder:
 
-    def __init__(self, neurons_per_layer, reuse=None, name="MLPDecoder"):
+    def __init__(self, neurons_per_layer, reuse=None, name="DeterministicMLPDecoder"):
         """
-        Deterministic multi-layer perceptron encoder for neural processes.
+        Deterministic multi-layer perceptron decoder for neural processes.
         :param neurons_per_layer: List or iterator of number of neurons in each layer in the MLP. The length of this
         list specifies the depth of the MLP.
         :param name: Variable scope.

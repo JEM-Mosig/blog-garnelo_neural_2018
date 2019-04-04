@@ -8,7 +8,7 @@ Implementation of a conditional neural process (CNP).
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from neuralprocesses.np.decoder import MLPDecoder
+from neuralprocesses.np.decoder import DeterministicMLPDecoder
 from neuralprocesses.np.encoder import DeterministicMLPEncoder
 from neuralprocesses.np.aggregator import MeanAggregator
 from neuralprocesses.np.aux import RegressionInput
@@ -53,7 +53,7 @@ class ConditionalNeuralProcess:
     def _choose_decoder(decoder_spec):
         if type(decoder_spec) is str:
             if decoder_spec == "MLP":
-                return MLPDecoder([64, 64, 64, 64])
+                return DeterministicMLPDecoder([64, 64, 64, 64])
             else:
                 raise ValueError("Unknown encoder specification")
         else:
