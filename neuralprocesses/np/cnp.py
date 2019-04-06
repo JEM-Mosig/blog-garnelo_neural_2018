@@ -10,13 +10,12 @@ import tensorflow_probability as tfp
 
 from neuralprocesses.np.decoder import DeterministicMLPDecoder
 from neuralprocesses.np.encoder import DeterministicMLPEncoder
-from neuralprocesses.np.aggregator import MeanAggregator
 from neuralprocesses.np.aux import RegressionInput
 
 
 class ConditionalNeuralProcess:
 
-    def __init__(self, encoder="MLP", aggregator="Mean", decoder="MLP", reuse=None, name="ConditionalNeuralProcess"):
+    def __init__(self, encoder="MLP", decoder="MLP", reuse=None, name="ConditionalNeuralProcess"):
         """
         Create a GaussianProcess graph.
         :param name: Name of the variable scope.
@@ -26,7 +25,6 @@ class ConditionalNeuralProcess:
         self._reuse = reuse
 
         self._encoder = self._choose_encoder(encoder)
-        self._aggregator = self._choose_aggregator(aggregator)
         self._decoder = self._choose_decoder(decoder)
 
     @staticmethod
@@ -38,16 +36,6 @@ class ConditionalNeuralProcess:
                 raise ValueError("Unknown encoder specification")
         else:
             return encoder_spec
-
-    @staticmethod
-    def _choose_aggregator(aggregator_spec):
-        if type(aggregator_spec) is str:
-            if aggregator_spec == "Mean":
-                return MeanAggregator()
-            else:
-                raise ValueError("Unknown aggregator specification")
-        else:
-            return aggregator_spec
 
     @staticmethod
     def _choose_decoder(decoder_spec):
@@ -70,8 +58,7 @@ class ConditionalNeuralProcess:
             num_target = regression_input.num_target
 
             # Construct the graph with the encoder, aggregator, and decoder
-            representation_list = self._encoder(x_context, y_context, num_context)
-            representation = self._aggregator(representation_list)
+            representation = self._encoder(x_context, y_context, num_context)
             mean, variance = self._decoder(representation, x_target, num_target)
 
             # Loss computation

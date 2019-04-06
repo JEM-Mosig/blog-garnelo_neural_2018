@@ -5,7 +5,6 @@ import numpy as np
 
 from neuralprocesses.np.decoder import DeterministicMLPDecoder
 from neuralprocesses.np.encoder import DeterministicMLPEncoder
-from neuralprocesses.np.aggregator import MeanAggregator
 
 
 class DeterministicMLPDecoderTEST(unittest.TestCase):
@@ -50,12 +49,10 @@ class DeterministicMLPDecoderTEST(unittest.TestCase):
 
         # Define the encoder and aggregator
         enc = DeterministicMLPEncoder([1, 2, 12, 5])    # Layer sizes are arbitrary, except for the last
-        agg = MeanAggregator()
         dec = DeterministicMLPDecoder([1, 2, 12, 5])    # Layer sizes are arbitrary
 
         # Construct the graph with the encoder, aggregator, and decoder
-        rep_list = enc(x_context, y_context, num_context)
-        rep = agg(rep_list)
+        rep = enc(x_context, y_context, num_context)
         mean, variance = dec(rep, x_target, num_target)
 
         # Evaluate the graph

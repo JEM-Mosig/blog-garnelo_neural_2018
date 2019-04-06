@@ -6,15 +6,16 @@ Implementation of encoder modules for neural processes.
 
 import tensorflow as tf
 from neuralprocesses.np.mlp import MultiLayerPerceptron
+from neuralprocesses.np.aggregator import MeanAggregator
 
 
 class DeterministicMLPEncoder:
 
-    def __init__(self, neurons_per_layer, reuse=None, name="DeterministicMLPEncoder"):
+    def __init__(self, neurons_per_layer, aggregator="Mean", reuse=None, name="DeterministicMLPEncoder"):
         """
         Deterministic multi-layer perceptron encoder for neural processes.
         :param neurons_per_layer: List or iterator of number of neurons in each layer in the MLP. The length of this
-        list specifies the depth of the MLP.
+        list specifies the depth of the MLP. The last entry also specifies the size of the representation vector.
         :param name: Variable scope.
         """
 
@@ -30,12 +31,24 @@ class DeterministicMLPEncoder:
             reuse=tf.AUTO_REUSE
         )
 
+        self._aggregator = self._choose_aggregator(aggregator)
+
+    @staticmethod
+    def _choose_aggregator(aggregator_spec):
+        if type(aggregator_spec) is str:
+            if aggregator_spec == "Mean":
+                return MeanAggregator()
+            else:
+                raise ValueError("Unknown aggregator specification")
+        else:
+            return aggregator_spec
+
     def __call__(self, x_context, y_context, num_context):
         """
         Construct the graph.
         :param x_context: [batch_size, num_context] tensor
         :param y_context: [batch_size, num_context] tensor
-        :return: A matrix of representation vectors (shape [batch_size, num_context, neurons_per_layer[-1]])
+        :return: A matrix of representation vectors (shape [batch_size, neurons_per_layer[-1]])
         """
 
         with tf.variable_scope(self._name, reuse=self._reuse):
@@ -58,5 +71,8 @@ class DeterministicMLPEncoder:
 
             # Reshape to one representation for each batch and each context point
             representation = tf.reshape(representation, (batch_size, num_context, self._representation_size))
+
+            # Aggregate
+            representation = self._aggregator(representation)
 
             return representation

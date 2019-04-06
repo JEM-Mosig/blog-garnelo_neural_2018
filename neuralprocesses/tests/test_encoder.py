@@ -29,9 +29,8 @@ class DeterministicMLPEncoderTEST(unittest.TestCase):
             rep_shape = session.run(tf.shape(rep))
 
         # batch_size          = 2
-        # num_context         = 4
         # encoder output size = 5
-        self.assertTrue(np.array_equal(rep_shape, [2, 4, 5]))
+        self.assertTrue(np.array_equal(rep_shape, [2, 5]))
 
     def test_compatibility_with_data_provider(self):
         tf.reset_default_graph()
@@ -53,12 +52,11 @@ class DeterministicMLPEncoderTEST(unittest.TestCase):
         init = tf.global_variables_initializer()
         with tf.Session() as session:
             session.run(init)
-            nc, rep_shape = session.run([num_context, tf.shape(rep)])
+            rep_shape = session.run(tf.shape(rep))
 
         # batch_size          = 3
-        # num_context         = nc
         # encoder output size = 5
-        self.assertTrue(np.array_equal(rep_shape, [3, nc, 5]))
+        self.assertTrue(np.array_equal(rep_shape, [3, 5]))
 
 
 if __name__ == '__main__':
