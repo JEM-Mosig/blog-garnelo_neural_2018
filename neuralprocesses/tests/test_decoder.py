@@ -48,7 +48,7 @@ class DeterministicMLPDecoderTEST(unittest.TestCase):
         x_target = tf.constant([[4, 12, 0, -3], [-2, -76, 2, 2]], dtype=tf.float32)
 
         # Define the encoder and aggregator
-        enc = DeterministicMLPEncoder([1, 2, 12, 5])    # Layer sizes are arbitrary, except for the last
+        enc = DeterministicMLPEncoder([1, 2, 12], representation_size=5)    # Layer sizes are arbitrary
         dec = DeterministicMLPDecoder([1, 2, 12, 5])    # Layer sizes are arbitrary
 
         # Construct the graph with the encoder, aggregator, and decoder
